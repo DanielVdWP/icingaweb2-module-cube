@@ -1,4 +1,7 @@
 <?php
+
+// phpcs:ignoreFile -- Standalone regression harness intentionally colocates lightweight test doubles.
+
 // Regression for Icinga/icingaweb2-module-cube#166.
 // Execute production URL-building code with minimal Icinga Web boundary doubles.
 
