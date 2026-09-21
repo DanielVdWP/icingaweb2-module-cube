@@ -144,6 +144,7 @@ namespace {
     if (file_exists($helper)) { require $helper; }
     require __DIR__ . '/../library/Cube/Web/Widget/DimensionWidget.php';
     require __DIR__ . '/../library/Cube/Web/Widget/ServiceDimensionWidget.php';
+    require __DIR__ . '/../library/Cube/Web/Widget/HostDimensionWidget.php';
     require __DIR__ . '/../library/Cube/ProvidedHook/Cube/IcingaDbActions.php';
 
     class TestWidget extends \Icinga\Module\Cube\Web\Widget\ServiceDimensionWidget
@@ -158,6 +159,20 @@ namespace {
             ];
         }
         public function detailsUrl(): \ipl\Web\Url { return $this->getDetailsUrl(); }
+    }
+
+    class TestHostWidget extends \\Icinga\\Module\\Cube\\Web\\Widget\\HostDimensionWidget
+    {
+        public function __construct(\\Icinga\\Module\\Cube\\IcingaDb\\IcingaDbCube $cube, string $value)
+        {
+            $this->cube = $cube;
+            $this->dimension = [
+                'name' => 'host.vars.region',
+                'row' => (object) ['host.vars.region' => $value],
+                'summaries' => (object) []
+            ];
+        }
+        public function detailsUrl(): \\ipl\\Web\\Url { return $this->getDetailsUrl(); }
     }
 
     function assertCondition(bool $ok, string $description): void
@@ -223,5 +238,24 @@ namespace {
     assertCondition(
         occurrences($url, $column, 'bob') === 2,
         'OR alternatives are not incorrectly eliminated'
+    );
+
+    $hostCube = new \\Icinga\\Module\\Cube\\IcingaDb\\IcingaDbCube();
+    $hostColumn = 'host.vars.region';
+    $hostCube->baseFilter = \\ipl\\Stdlib\\Filter::equal($hostColumn, 'eu');
+    $hostDetails = (new TestHostWidget($hostCube, 'eu'))->detailsUrl();
+    assertCondition($hostDetails->path === 'icingadb/hosts', 'Host details target retained');
+    assertCondition(
+        occurrences($hostDetails, $hostColumn, 'eu') === 1,
+        'Host detail URL does not duplicate a matching base filter'
+    );
+
+    $hostCube->sliceData = [$hostColumn => 'eu'];
+    $hostHook = new \\Icinga\\Module\\Cube\\ProvidedHook\\Cube\\IcingaDbActions();
+    $hostHook->createActionLinks($hostCube);
+    assertCondition($hostHook->links[0]->path === 'icingadb/hosts', 'Show hosts status target retained');
+    assertCondition(
+        occurrences($hostHook->links[0], $hostColumn, 'eu') === 1,
+        'Show hosts status link does not repeat the same custom variable filter'
     );
 }
