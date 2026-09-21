@@ -161,9 +161,9 @@ namespace {
         public function detailsUrl(): \ipl\Web\Url { return $this->getDetailsUrl(); }
     }
 
-    class TestHostWidget extends \\Icinga\\Module\\Cube\\Web\\Widget\\HostDimensionWidget
+    class TestHostWidget extends \Icinga\Module\Cube\Web\Widget\HostDimensionWidget
     {
-        public function __construct(\\Icinga\\Module\\Cube\\IcingaDb\\IcingaDbCube $cube, string $value)
+        public function __construct(\Icinga\Module\Cube\IcingaDb\IcingaDbCube $cube, string $value)
         {
             $this->cube = $cube;
             $this->dimension = [
@@ -172,7 +172,7 @@ namespace {
                 'summaries' => (object) []
             ];
         }
-        public function detailsUrl(): \\ipl\\Web\\Url { return $this->getDetailsUrl(); }
+        public function detailsUrl(): \ipl\Web\Url { return $this->getDetailsUrl(); }
     }
 
     function assertCondition(bool $ok, string $description): void
@@ -240,9 +240,9 @@ namespace {
         'OR alternatives are not incorrectly eliminated'
     );
 
-    $hostCube = new \\Icinga\\Module\\Cube\\IcingaDb\\IcingaDbCube();
+    $hostCube = new \Icinga\Module\Cube\IcingaDb\IcingaDbCube();
     $hostColumn = 'host.vars.region';
-    $hostCube->baseFilter = \\ipl\\Stdlib\\Filter::equal($hostColumn, 'eu');
+    $hostCube->baseFilter = \ipl\Stdlib\Filter::equal($hostColumn, 'eu');
     $hostDetails = (new TestHostWidget($hostCube, 'eu'))->detailsUrl();
     assertCondition($hostDetails->path === 'icingadb/hosts', 'Host details target retained');
     assertCondition(
@@ -251,7 +251,7 @@ namespace {
     );
 
     $hostCube->sliceData = [$hostColumn => 'eu'];
-    $hostHook = new \\Icinga\\Module\\Cube\\ProvidedHook\\Cube\\IcingaDbActions();
+    $hostHook = new \Icinga\Module\Cube\ProvidedHook\Cube\IcingaDbActions();
     $hostHook->createActionLinks($hostCube);
     assertCondition($hostHook->links[0]->path === 'icingadb/hosts', 'Show hosts status target retained');
     assertCondition(
