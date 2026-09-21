@@ -47,11 +47,11 @@ jobs:
         run: |
           set -euxo pipefail
           for try in $(seq 1 45); do
-            if curl --silent --show-error --fail --location --max-time 5 http://localhost:8080/authentication/login >/tmp/cube130-login.html && test -s /tmp/cube130-login.html; then break; fi
+            if curl --silent --show-error --fail --location --cookie /tmp/cube130-cookies --cookie-jar /tmp/cube130-cookies --max-time 5 http://localhost:8080/authentication/login >/tmp/cube130-login.html && test -s /tmp/cube130-login.html; then break; fi
             sleep 3
           done
           test -s /tmp/cube130-login.html
-          curl --silent --show-error --location --output /tmp/cube130-cube.html --write-out 'HTTP %{http_code}\n' --max-time 15 'http://localhost:8080/cube/services?dimensions=service.vars.role,host.vars.location'
+          curl --silent --show-error --location --cookie /tmp/cube130-cookies --cookie-jar /tmp/cube130-cookies --output /tmp/cube130-cube.html --write-out 'HTTP %{http_code}\n' --max-time 15 'http://localhost:8080/cube/services?dimensions=service.vars.role,host.vars.location'
           test -s /tmp/cube130-cube.html
           grep -Eiq 'icinga|login' /tmp/cube130-login.html
           echo 'Full Icinga stack HTTP smoke test passed; interactive cube rendering is tested separately.'
