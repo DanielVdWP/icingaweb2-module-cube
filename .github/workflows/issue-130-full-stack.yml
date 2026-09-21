@@ -1,0 +1,72 @@
+name: Issue 130 full-stack baseline
+
+on:
+  push:
+    branches:
+      - feat/130-align-two-dimensional-cubes
+
+jobs:
+  full-stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Provision Icinga 2, Icinga DB, MariaDB, Redis, and Icinga Web 2
+        run: |
+          set -euxo pipefail
+          git clone --depth 1 https://github.com/lippserd/docker-compose-icinga.git /tmp/icinga-stack
+          cd /tmp/icinga-stack
+          cat > compose.override.yaml <<'YAML'
+          services:
+            mysql:
+              image: mariadb:10.11
+              command: --default-authentication-plugin=mysql_native_password
+          YAML
+          docker compose -p cube130 config --quiet
+          docker compose -p cube130 up -d mysql icingadb-redis
+          docker compose -p cube130 up -d init-icinga2
+          docker compose -p cube130 up -d icinga2 icingadb icingaweb
+
+      - name: Enable the checked-out Cube module in the real Icinga Web container
+        run: |
+          set -euxo pipefail
+          cd /tmp/icinga-stack
+          WEB=$(docker compose -p cube130 ps -q icingaweb)
+          test -n "$WEB"
+          docker exec "$WEB" mkdir -p /usr/share/icingaweb2/modules/cube
+          docker cp "$GITHUB_WORKSPACE/." "$WEB:/usr/share/icingaweb2/modules/cube/"
+          for try in $(seq 1 45); do
+            if docker exec "$WEB" icingacli module enable cube; then break; fi
+            sleep 3
+          done
+          docker exec "$WEB" icingacli module list | tee /tmp/cube130-modules.log
+          grep -i cube /tmp/cube130-modules.log
+
+      - name: Verify HTTP access to real Icinga Web and Cube
+        run: |
+          set -euxo pipefail
+          for try in $(seq 1 45); do
+            if curl --silent --show-error --fail --max-time 3 http://localhost:8080/ >/tmp/cube130-login.html; then break; fi
+            sleep 3
+          done
+          test -s /tmp/cube130-login.html
+          curl --silent --show-error --location --output /tmp/cube130-cube.html --write-out 'HTTP %{http_code}\n' --max-time 15 'http://localhost:8080/icingaweb2/cube/services?dimensions=service.vars.role,host.vars.location'
+          test -s /tmp/cube130-cube.html
+          docker compose -f /tmp/icinga-stack/docker-compose.yml -f /tmp/icinga-stack/compose.override.yaml -p cube130 ps
+
+      - name: Save diagnostics
+        if: always()
+        run: |
+          cd /tmp/icinga-stack
+          docker compose -p cube130 ps > "$GITHUB_WORKSPACE/stack-status.txt" || true
+          docker compose -p cube130 logs --no-color --tail 140 > "$GITHUB_WORKSPACE/stack-logs.txt" || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue-130-full-stack-diagnostics
+          path: |
+            stack-status.txt
+            stack-logs.txt
+          if-no-files-found: ignore
