@@ -191,7 +191,7 @@ namespace {
         'Selected service dimension preserved'
     );
     verify(
-        ($url->getParams()->values['slice.service.vars.environment'] ?? null) === 'production',
+        ($url->getParams()->values['service.vars.environment'] ?? null) === 'production',
         'Service cube slice preserved'
     );
 
