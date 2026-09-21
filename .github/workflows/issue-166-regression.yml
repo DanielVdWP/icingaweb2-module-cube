@@ -22,8 +22,21 @@ jobs:
           coverage: none
       - name: Validate PHP syntax
         run: |
+          php -l library/Cube/IcingaDb/FilterUtil.php
           php -l library/Cube/Web/Widget/DimensionWidget.php
+          php -l library/Cube/Web/Widget/HostDimensionWidget.php
+          php -l library/Cube/Web/Widget/ServiceDimensionWidget.php
           php -l library/Cube/ProvidedHook/Cube/IcingaDbActions.php
           php -l tests/issue-166-duplicate-custom-var-filter.php
       - name: Reproduce and validate actual cube URL construction
         run: php tests/issue-166-duplicate-custom-var-filter.php
+
+  project-ci:
+    name: Upstream PHP checks
+    uses: Icinga/github-actions/.github/workflows/php.yml@main
+    with:
+      php-versions: '["8.3", "8.4"]'
+      dependencies: |
+        {
+          "./vendor/icingaweb2-modules/icingadb" : "https://github.com/Icinga/icingadb-web.git"
+        }
